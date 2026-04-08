@@ -8,8 +8,6 @@ import 'package:uconnecta/data/constrains.dart';
 import 'package:uconnecta/data/notifiers.dart';
 import 'package:uconnecta/pages/sign_up_in_page.dart';
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 class HomePageUnregistered extends StatefulWidget {
   const HomePageUnregistered({super.key});
 

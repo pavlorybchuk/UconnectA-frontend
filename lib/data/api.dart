@@ -7,7 +7,7 @@ class Api {
   static const String logout = "/api/auth/logout/";
   static const String me = "/api/me/";
   static const String block = "/api/block/";
-
+  static const String recognizePhoto = "/api/recognize-photo/";
   static const String chats = "/api/chats/";
   static const String chatsDirect = "/api/chats/direct/";
 

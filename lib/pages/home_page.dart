@@ -12,6 +12,7 @@ import 'package:uconnecta/data/constrains.dart';
 import 'package:uconnecta/pages/call_page.dart';
 import 'package:uconnecta/pages/chat_page.dart';
 import 'package:uconnecta/pages/driver_profile_page.dart';
+import 'package:uconnecta/pages/camera_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -215,6 +216,18 @@ class _HomePageState extends State<HomePage> {
                         key: const ValueKey("Main page search"),
                         controller: controller1,
                         isOnMainPage: true,
+                        onCameraPressed: () async {
+                          final result = await Navigator.push<Map<String, dynamic>?>(
+                            context,
+                            MaterialPageRoute(builder: (_) => const CameraPage()),
+                          );
+                          if (result != null && mounted) {
+                            // TODO: handle recognition result, e.g. open driver profile
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Recognition result: $result')),
+                            );
+                          }
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),

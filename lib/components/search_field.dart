@@ -17,12 +17,16 @@ class SearchInput extends StatefulWidget {
   /// or a new search is started.
   final void Function(DriverProfile? profile)? onProfileFound;
 
+  /// Called when the camera button is pressed (registered home page only).
+  final VoidCallback? onCameraPressed;
+
   const SearchInput({
     super.key,
     required this.controller,
     this.isOnMainPage = false,
     this.onProfileFound,
     this.focusNode,
+    this.onCameraPressed,
   });
 
   @override
@@ -360,7 +364,7 @@ class _SearchInputState extends State<SearchInput>
             BlendMode.srcIn,
           ),
         ),
-        onPressed: () {},
+        onPressed: widget.onCameraPressed,
       );
     }
 
