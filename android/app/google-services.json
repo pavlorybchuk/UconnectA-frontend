@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1025717735205",
+    "project_id": "uconnecta",
+    "storage_bucket": "uconnecta.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1025717735205:android:be54f912b46ee2b66d94cc",
+        "android_client_info": {
+          "package_name": "com.example.uconnecta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAP8BgM6lZWJdI0hyMzu36-ohrdbuOvz8Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
