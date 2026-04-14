@@ -3,7 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:uconnecta/app_services.dart';
 import 'package:uconnecta/auth/user_scope.dart';
 import 'package:uconnecta/pages/chat_page.dart';
-import '../data/constrains.dart';
+import '../data/constrains_&_utils.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -43,9 +43,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
               final b = body.trim();
 
               if (b.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Body is required")),
-                );
+                showErrorSnackBar("Body is required", mounted, context);
                 return;
               }
 
@@ -80,42 +78,14 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
 
                 if (!context.mounted) return;
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(child: Text('Message sended!')),
-                      ],
-                    ),
-                    backgroundColor: KColors.goodColor,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
+                showSuccessSnackBar('Message sended!', mounted, context);
               } catch (e) {
                 if (!context.mounted) return;
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text('Failed to send message (500 error)'),
-                        ),
-                      ],
-                    ),
-                    backgroundColor: KColors.badColor,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                showErrorSnackBar(
+                  'Failed to send message (500 error)',
+                  mounted,
+                  context,
                 );
               } finally {
                 if (ctx.mounted) setModalState(() => isSending = false);
@@ -259,17 +229,10 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
       await AppServices.chatApi.blockUser(widget.profile.id);
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('User blocked')));
-
-      // опційно: повернутись назад
+      showSuccessSnackBar('User blocked', mounted, context);
       Navigator.pop(context);
     } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to block: $e')));
+      showErrorSnackBar('Failed to block: $e', mounted, context);
     }
   }
 
@@ -447,43 +410,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
                         Clipboard.setData(
                           ClipboardData(text: widget.profile.username),
                         );
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            SnackBar(
-                              behavior: SnackBarBehavior.floating,
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              elevation: 0,
-                              backgroundColor: Color.fromRGBO(0, 0, 0, 0.85),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              duration: const Duration(milliseconds: 900),
-                              content: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      'Username copied!',
-                                      style: KTextStyles.fontMediumStyle
-                                          .copyWith(color: Colors.white),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
+                        showSuccessSnackBar("Username copied", mounted, context);
                       },
                       child: Icon(
                         Icons.copy,

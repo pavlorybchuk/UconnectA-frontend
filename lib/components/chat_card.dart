@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:uconnecta/data/constrains.dart';
+import 'package:uconnecta/data/constrains_&_utils.dart';
 
 class ChatCard extends StatelessWidget {
   final String title;

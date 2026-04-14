@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uconnecta/app_services.dart';
-import 'package:uconnecta/data/constrains.dart';
+import 'package:uconnecta/data/constrains_&_utils.dart';
 import 'package:uconnecta/data/recognize_api.dart';
 
 /// Full-screen camera page.

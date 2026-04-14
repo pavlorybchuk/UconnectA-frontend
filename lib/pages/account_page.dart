@@ -5,7 +5,7 @@ import 'package:uconnecta/app_services.dart';
 import 'package:uconnecta/auth/current_user.dart';
 
 import '../auth/user_scope.dart';
-import '../data/constrains.dart';
+import '../data/constrains_&_utils.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -80,9 +80,7 @@ class _AccountPageState extends State<AccountPage> {
                                 } catch (e) {
                                   setModalState(() => saving = false);
                                   if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(e.toString())),
-                                  );
+                                  showErrorSnackBar(e.toString(), mounted, ctx);
                                 }
                               },
                         icon: saving
@@ -317,44 +315,7 @@ class _AccountPageState extends State<AccountPage> {
                 GestureDetector(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: username));
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        SnackBar(
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          elevation: 0,
-                          backgroundColor: Color.fromRGBO(0, 0, 0, 0.85),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          duration: const Duration(milliseconds: 900),
-                          content: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Username copied!',
-                                  style: KTextStyles.fontMediumStyle.copyWith(
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                    showSuccessSnackBar('Username copied!', mounted, context);
                   },
                   child: Icon(Icons.copy, size: 25, color: KColors.mainColor),
                 ),

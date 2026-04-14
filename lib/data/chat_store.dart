@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:uconnecta/data/constrains.dart';
+import 'package:uconnecta/data/constrains_&_utils.dart';
 
 class ChatStore extends ChangeNotifier {
   final Map<String, ChatListItem> _chats = {};

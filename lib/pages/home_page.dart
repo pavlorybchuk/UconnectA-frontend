@@ -8,7 +8,7 @@ import 'package:uconnecta/auth/user_scope.dart';
 import 'package:uconnecta/components/chat_card.dart';
 import 'package:uconnecta/components/search_field.dart';
 import 'package:uconnecta/components/sort_tab.dart';
-import 'package:uconnecta/data/constrains.dart';
+import 'package:uconnecta/data/constrains_&_utils.dart';
 import 'package:uconnecta/pages/call_page.dart';
 import 'package:uconnecta/pages/chat_page.dart';
 import 'package:uconnecta/pages/driver_profile_page.dart';
@@ -217,14 +217,18 @@ class _HomePageState extends State<HomePage> {
                         controller: controller1,
                         isOnMainPage: true,
                         onCameraPressed: () async {
-                          final result = await Navigator.push<Map<String, dynamic>?>(
-                            context,
-                            MaterialPageRoute(builder: (_) => const CameraPage()),
-                          );
+                          final result =
+                              await Navigator.push<Map<String, dynamic>?>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CameraPage(),
+                                ),
+                              );
                           if (result != null && mounted) {
-                            // TODO: handle recognition result, e.g. open driver profile
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Recognition result: $result')),
+                            showSuccessSnackBar(
+                              'Recognition result: $result',
+                              mounted,
+                              context,
                             );
                           }
                         },
@@ -428,9 +432,11 @@ class _HomePageState extends State<HomePage> {
                             }
                           });
                         } catch (e) {
-                          ScaffoldMessenger.of(
+                          showErrorSnackBar(
+                            e.toString().replaceFirst('Exception: ', ''),
+                            mounted,
                             context,
-                          ).showSnackBar(SnackBar(content: Text(e.toString())));
+                          );
                         }
                       },
 
@@ -476,20 +482,20 @@ class _HomePageState extends State<HomePage> {
                           });
 
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                choice == "me"
-                                    ? "Chat deleted for you"
-                                    : "Chat deleted for everyone",
-                              ),
-                            ),
+                          showSuccessSnackBar(
+                            choice == "me"
+                                ? "Chat deleted for you"
+                                : "Chat deleted for everyone",
+                            mounted,
+                            context,
                           );
                         } catch (e) {
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(
+                          showErrorSnackBar(
+                            e.toString().replaceFirst('Exception: ', ''),
+                            mounted,
                             context,
-                          ).showSnackBar(SnackBar(content: Text(e.toString())));
+                          );
                         }
                       },
 
@@ -526,14 +532,18 @@ class _HomePageState extends State<HomePage> {
                             () => _allChats.removeWhere((c) => c.id == chat.id),
                           );
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Driver blocked")),
+                          showSuccessSnackBar(
+                            "Driver blocked",
+                            mounted,
+                            context,
                           );
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(
+                          showErrorSnackBar(
+                            e.toString().replaceFirst('Exception: ', ''),
+                            mounted,
                             context,
-                          ).showSnackBar(SnackBar(content: Text(e.toString())));
+                          );
                         }
                       },
                     );

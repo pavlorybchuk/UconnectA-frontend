@@ -2,7 +2,7 @@
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:uconnecta/pages/driver_profile_page.dart';
-import '../data/constrains.dart';
+import '../data/constrains_&_utils.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -157,7 +157,7 @@ class _SearchInputState extends State<SearchInput>
   Future<void> _autoSearch(String carNumber) async {
     if (loading) return;
     setState(() => loading = true);
-    widget.onProfileFound?.call(null); // reset while loading
+    widget.onProfileFound?.call(null);
 
     try {
       final data = await searchUser(carNumber: carNumber);
@@ -174,10 +174,10 @@ class _SearchInputState extends State<SearchInput>
         _isValid = false;
       });
       if (widget.isOnMainPage && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString().replaceFirst('Exception: ', '')),
-          ),
+        showErrorSnackBar(
+          error.toString().replaceFirst('Exception: ', ''),
+          mounted,
+          context,
         );
       }
     } finally {
@@ -331,10 +331,10 @@ class _SearchInputState extends State<SearchInput>
             _showSearchIcon = true;
           });
           if (widget.isOnMainPage) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(error.toString().replaceFirst('Exception: ', '')),
-              ),
+            showErrorSnackBar(
+              error.toString().replaceFirst('Exception: ', ''),
+              mounted,
+              context,
             );
           }
         }

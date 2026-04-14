@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'dart:io';
 import '../auth/api_client.dart';
 import 'api.dart';
-import 'constrains.dart';
+import 'constrains_&_utils.dart';
 
 class ChatApi {
   final ApiClient apiClient;

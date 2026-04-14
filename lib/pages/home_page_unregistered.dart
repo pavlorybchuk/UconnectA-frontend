@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:uconnecta/components/search_field.dart';
-import 'package:uconnecta/data/constrains.dart';
+import 'package:uconnecta/data/constrains_&_utils.dart';
 import 'package:uconnecta/data/notifiers.dart';
 import 'package:uconnecta/pages/sign_up_in_page.dart';
 
@@ -109,37 +109,12 @@ class _HomePageUnregisteredState extends State<HomePageUnregistered>
       if (!mounted) return;
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Expanded(child: Text('Message sended!')),
-              ],
-            ),
-            backgroundColor: KColors.goodColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        showSuccessSnackBar('Message sended!', mounted, context);
       } else {
         throw Exception('HTTP ${res.statusCode}');
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sending error: $e'),
-          backgroundColor: KColors.badColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      showErrorSnackBar('Sending error: $e', mounted, context);
     }
   }
 

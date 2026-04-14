@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:uconnecta/data/constrains.dart';
+import 'package:uconnecta/data/constrains_&_utils.dart';
 import '../auth/current_user.dart';
 
 ValueNotifier<int> signUpInTabsNotifier = ValueNotifier(0);

@@ -7,7 +7,7 @@ import 'package:uconnecta/pages/call_page.dart';
 import 'package:uconnecta/pages/chat_page.dart';
 import "./data/notifiers.dart";
 import 'auth/auth_gate.dart';
-import "data/constrains.dart";
+import "data/constrains_&_utils.dart";
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 

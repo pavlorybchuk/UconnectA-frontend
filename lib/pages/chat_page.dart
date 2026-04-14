@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:uconnecta/app_services.dart';
 import 'package:uconnecta/auth/user_scope.dart';
-import 'package:uconnecta/data/constrains.dart';
+import 'package:uconnecta/data/constrains_&_utils.dart';
 import 'package:uconnecta/data/navigation_service.dart';
 import 'package:uconnecta/pages/driver_profile_page.dart';
 import 'package:uconnecta/pages/home_page.dart';
@@ -171,9 +171,7 @@ class _ChatPageState extends State<ChatPage> {
       } catch (e) {
         if (!mounted) return;
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Chat not found")));
+        showErrorSnackBar("Chat not found", mounted, context);
         Navigator.pop(context);
       } finally {
         if (mounted) setState(() => _loading = false);
@@ -216,10 +214,7 @@ class _ChatPageState extends State<ChatPage> {
       });
       _scrollToBottom(delayMs: 50);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load messages: $e")));
+      showErrorSnackBar("Failed to load messages: $e", mounted, context);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -255,9 +250,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _pickImage(ImageSource source) async {
     final me = UserScope.of(context).value;
     if (me == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please sign in to send images")),
-      );
+      showErrorSnackBar("Please sign in to send images", mounted, context);
       return;
     }
 
@@ -271,10 +264,7 @@ class _ChatPageState extends State<ChatPage> {
 
       setState(() => _pendingImage = File(x.path));
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to pick image: $e")));
+      showErrorSnackBar("Failed to pick image: $e", mounted, context);
     }
   }
 
@@ -324,9 +314,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _send() async {
     final me = UserScope.of(context).value;
     if (me == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please sign in to send messages")),
-      );
+      showErrorSnackBar("Please sign in to send messages", mounted, context);
       return;
     }
 
@@ -378,7 +366,7 @@ class _ChatPageState extends State<ChatPage> {
         msg = "Failed to send: $e";
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      showErrorSnackBar(msg, mounted, context);
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -454,10 +442,7 @@ class _ChatPageState extends State<ChatPage> {
       if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to delete: $e")));
+      showErrorSnackBar("Failed to delete: $e", mounted, context);
     }
   }
 
@@ -486,14 +471,9 @@ class _ChatPageState extends State<ChatPage> {
       await AppServices.chatApi.blockUser(_peer.id);
       if (!mounted) return;
       Navigator.pop(context); // назад з чату
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("User blocked")));
+      showSuccessSnackBar("User blocked", mounted, context);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to block: $e")));
+      showErrorSnackBar("Failed to block: $e", mounted, context);
     }
   }
 
@@ -544,10 +524,7 @@ class _ChatPageState extends State<ChatPage> {
 
               Navigator.pop(ctx);
             } catch (e) {
-              if (!mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Failed to edit: $e")));
+              showErrorSnackBar("Failed to edit: $e", mounted, context);
             } finally {
               if (ctx.mounted) setModalState(() => saving = false);
             }
@@ -674,10 +651,7 @@ class _ChatPageState extends State<ChatPage> {
                 _messages.removeWhere((x) => x.id == m.id);
               });
             } catch (e) {
-              if (!mounted) return;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Failed: $e")));
+              showErrorSnackBar("Failed: $e", mounted, context);
             }
           },
 
@@ -847,9 +821,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _showAttachSheet() async {
     final me = UserScope.of(context).value;
     if (me == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please sign in to send images")),
-      );
+      showErrorSnackBar("Please sign in to send images", mounted, context);
       return;
     }
 

@@ -6,7 +6,7 @@ import 'package:uconnecta/auth/auth_gate.dart';
 import 'package:uconnecta/components/input_field.dart';
 import 'package:uconnecta/data/notifiers.dart';
 import 'package:uconnecta/pages/home_page_unregistered.dart';
-import './../data/constrains.dart';
+import '../data/constrains_&_utils.dart';
 
 class SignUpInPage extends StatefulWidget {
   const SignUpInPage({super.key});
@@ -82,7 +82,8 @@ class _SignUpInPageState extends State<SignUpInPage> {
   /// Converts a [DioException] (or any error) into a human-readable string.
   /// Parses field-level 400 errors returned by the backend serializer.
   String _parseError(Object e) {
-    if (e is! DioException) return "An unexpected error occurred. Please retry.";
+    if (e is! DioException)
+      return "An unexpected error occurred. Please retry.";
 
     final response = e.response;
 
@@ -122,14 +123,16 @@ class _SignUpInPageState extends State<SignUpInPage> {
           final val = entry.value;
 
           // Friendly label mapping
-          final label = const {
-            'email': 'Email',
-            'phone': 'Phone',
-            'password': 'Password',
-            'repeat_password': 'Repeat password',
-            'detail': '',
-            'non_field_errors': '',
-          }[key] ?? _capitalize(key.replaceAll('_', ' '));
+          final label =
+              const {
+                'email': 'Email',
+                'phone': 'Phone',
+                'password': 'Password',
+                'repeat_password': 'Repeat password',
+                'detail': '',
+                'non_field_errors': '',
+              }[key] ??
+              _capitalize(key.replaceAll('_', ' '));
 
           if (val is List) {
             for (final msg in val) {
@@ -160,63 +163,6 @@ class _SignUpInPageState extends State<SignUpInPage> {
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
-
-  // ---------------------------------------------------------------------------
-  // Snackbars
-  // ---------------------------------------------------------------------------
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: KColors.badColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        content: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF2E7D32),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // "How to address" modal
-  // ---------------------------------------------------------------------------
 
   Future<bool> _showHowToAddressModal() async {
     final result = await showDialog<bool>(
@@ -341,21 +287,17 @@ class _SignUpInPageState extends State<SignUpInPage> {
           howToAddress: controller7.text.trim(),
         );
 
-        await auth.login(
-          email: controller1.text,
-          password: controller3.text,
-        );
+        await auth.login(email: controller1.text, password: controller3.text);
       } else {
-        await auth.login(
-          email: controller5.text,
-          password: controller6.text,
-        );
+        await auth.login(email: controller5.text, password: controller6.text);
       }
 
       if (!mounted) return;
 
-      _showSuccessSnackBar(
+      showSuccessSnackBar(
         tab == 0 ? "Account created! Welcome 🎉" : "Welcome back!",
+        mounted,
+        context,
       );
 
       await Future.delayed(const Duration(milliseconds: 600));
@@ -369,7 +311,7 @@ class _SignUpInPageState extends State<SignUpInPage> {
       );
     } catch (e) {
       debugPrint("Auth error: $e");
-      _showErrorSnackBar(_parseError(e));
+      showErrorSnackBar(_parseError(e), mounted, context);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -592,9 +534,10 @@ class _SignUpInPageState extends State<SignUpInPage> {
                                   child: isLoading
                                       ? Transform.scale(
                                           scale: 0.4,
-                                          child: const CircularProgressIndicator(
-                                            color: Colors.black,
-                                          ),
+                                          child:
+                                              const CircularProgressIndicator(
+                                                color: Colors.black,
+                                              ),
                                         )
                                       : Text(
                                           signUpInTab == 0
@@ -684,7 +627,9 @@ class _SignUpInPageState extends State<SignUpInPage> {
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      vertical: 8.0, horizontal: 16.0),
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
                   decoration: BoxDecoration(
                     color: KColors.secondaryColor,
                     borderRadius: BorderRadius.circular(12),
@@ -692,8 +637,11 @@ class _SignUpInPageState extends State<SignUpInPage> {
                   constraints: const BoxConstraints(maxWidth: 280),
                   child: Row(
                     children: [
-                      const Icon(Icons.privacy_tip,
-                          size: 30, color: Colors.white),
+                      const Icon(
+                        Icons.privacy_tip,
+                        size: 30,
+                        color: Colors.white,
+                      ),
                       Text(
                         "Privacy policy",
                         style: KTextStyles.fontSmallStyle.copyWith(
@@ -711,11 +659,16 @@ class _SignUpInPageState extends State<SignUpInPage> {
                   ),
                   constraints: const BoxConstraints(maxWidth: 280),
                   padding: const EdgeInsets.symmetric(
-                      vertical: 8.0, horizontal: 16.0),
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.description,
-                          size: 30, color: Colors.white),
+                      const Icon(
+                        Icons.description,
+                        size: 30,
+                        color: Colors.white,
+                      ),
                       Text(
                         "Terms of use",
                         style: KTextStyles.fontSmallStyle.copyWith(
@@ -733,7 +686,9 @@ class _SignUpInPageState extends State<SignUpInPage> {
                   ),
                   constraints: const BoxConstraints(maxWidth: 280),
                   padding: const EdgeInsets.symmetric(
-                      vertical: 8.0, horizontal: 16.0),
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
                   child: Row(
                     children: [
                       const Icon(Icons.info, size: 30, color: Colors.white),
