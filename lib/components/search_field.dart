@@ -308,7 +308,7 @@ class _SearchInputState extends State<SearchInput>
               ? await searchUser(carNumber: q)
               : await searchUser(username: q);
 
-          final profile = DriverProfile.fromJson(data);
+          final profile = DriverProfile.fromJson(data).copyWith(carNumber: q);
 
           Navigator.push(
             context,

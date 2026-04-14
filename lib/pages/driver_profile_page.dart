@@ -24,6 +24,10 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
     String body = '';
     bool isSending = false;
 
+    final carTag = widget.profile.carNumber != null
+        ? "(${widget.profile.carNumber!.toUpperCase()})"
+        : "";
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -51,7 +55,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
                 final payload = <String, String>{
                   "to": widget.profile.id,
                   "body": b,
-                  "subject": s.isNotEmpty ? s : "No subject",
+                  "subject": s.isNotEmpty ? "$s $carTag" : "No subject $carTag",
                 };
 
                 final uri = Uri.parse(
@@ -76,14 +80,42 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
 
                 if (!context.mounted) return;
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text("Message sent")));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(child: Text('Message sended!')),
+                      ],
+                    ),
+                    backgroundColor: KColors.goodColor,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
               } catch (e) {
                 if (!context.mounted) return;
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Failed to send message (500 error)")),
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text('Failed to send message (500 error)'),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: KColors.badColor,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 );
               } finally {
                 if (ctx.mounted) setModalState(() => isSending = false);

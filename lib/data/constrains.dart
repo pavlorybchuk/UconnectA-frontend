@@ -39,6 +39,7 @@ class DriverProfile {
   final String? photo;
   final double? rating;
   final bool isBlocked;
+  final String? carNumber;
 
   DriverProfile({
     required this.id,
@@ -48,7 +49,21 @@ class DriverProfile {
     this.photo,
     this.rating,
     required this.isBlocked,
+    this.carNumber,
   });
+
+  DriverProfile copyWith({String? carNumber}) {
+    return DriverProfile(
+      id: id,
+      username: username,
+      displayName: displayName,
+      about: about,
+      photo: photo,
+      rating: rating,
+      isBlocked: isBlocked,
+      carNumber: carNumber ?? this.carNumber,
+    );
+  }
 
   String? get photoUrl {
     if (photo == null || photo!.isEmpty) return null;

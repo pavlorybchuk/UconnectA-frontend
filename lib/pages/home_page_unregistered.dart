@@ -97,11 +97,14 @@ class _HomePageUnregisteredState extends State<HomePageUnregistered>
             },
             body: jsonEncode({
               'to': _foundProfile!.id,
-              'subject': msg.subject,
-              'body': msg.body+_searchController.text,
+              'subject':
+                  '${msg.subject} (${_searchController.text.toUpperCase()})',
+              'body': msg.body,
             }),
           )
           .timeout(const Duration(seconds: 10));
+
+      debugPrint(res.body.toString());
 
       if (!mounted) return;
 
