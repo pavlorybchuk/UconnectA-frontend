@@ -26,11 +26,11 @@ class InputField extends StatefulWidget {
   final bool isOnLoginPage;
 
   @override
-  State<InputField> createState() => _InputFieldState();
+  InputFieldState createState() => InputFieldState();
 }
 
-class _InputFieldState extends State<InputField> {
-  // types
+// Public so parent widgets can use GlobalKey<InputFieldState>
+class InputFieldState extends State<InputField> {
   static const int tEmail = 0;
   static const int tPhone = 1;
   static const int tPassword = 2;
@@ -43,25 +43,26 @@ class _InputFieldState extends State<InputField> {
   );
 
   bool _obscure = true;
-
   String _errorText = "";
   bool? _isValid;
+
+  /// When true, focus-loss will NOT clear the error message.
+  /// Set by [validateNow] so submit-triggered errors stay visible.
+  /// Reset to false when the user re-focuses the field.
+  bool _forceShow = false;
 
   Country selected = countries.first;
 
   @override
   void initState() {
     super.initState();
-
     selected = countryNotifier.value ?? countries.first;
 
-    // Логіка як у тебе: на login page password не валідимо live
     final shouldAttachListener =
         !(widget.type == tPassword && widget.isOnLoginPage);
 
     if (shouldAttachListener) {
       widget.controller.addListener(validate);
-
       if (widget.type == tRepeatPassword) {
         widget.matchController?.addListener(validate);
       }
@@ -79,13 +80,11 @@ class _InputFieldState extends State<InputField> {
         widget.matchController?.removeListener(validate);
       }
     }
-
     super.dispose();
   }
 
   bool _isPasswordStrong(String password) {
     if (password.trim().isEmpty) return false;
-
     final regex = RegExp(
       r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$',
     );
@@ -149,22 +148,18 @@ class _InputFieldState extends State<InputField> {
           );
           return;
         }
-
         if (value.isEmpty) {
           _setValidation(ok: false, message: "Please repeat password");
           return;
         }
-
         if (original.isEmpty) {
           _setValidation(ok: false, message: "Enter password first");
           return;
         }
-
         if (value != original) {
           _setValidation(ok: false, message: "Passwords do not match");
           return;
         }
-
         _setValidation(ok: true, message: "Passwords match");
         return;
 
@@ -172,6 +167,28 @@ class _InputFieldState extends State<InputField> {
         _setValidation(ok: null, message: "");
         return;
     }
+  }
+
+  /// Triggers validation immediately and forces the error message to stay
+  /// visible even after the field loses focus. Returns [true] if the field
+  /// is valid. Call via [GlobalKey<InputFieldState>] on form submit.
+  bool validateNow() {
+    _forceShow = true;
+    validate();
+
+    // Handle the case where an empty required field hasn't triggered the
+    // listener yet — show a "required" error explicitly.
+    if (_isValid == null && widget.isRequired) {
+      final value = widget.controller.text.trim();
+      if (value.isEmpty) {
+        setState(() {
+          _isValid = false;
+          _errorText = "${widget.placeholderText} is required";
+        });
+      }
+    }
+
+    return _isValid == true;
   }
 
   @override
@@ -195,12 +212,17 @@ class _InputFieldState extends State<InputField> {
                 children: [
                   Focus(
                     onFocusChange: (hasFocus) {
-                      if (!hasFocus) {
+                      if (hasFocus) {
+                        // User came back to edit — restore normal clear-on-blur
+                        setState(() => _forceShow = false);
+                      } else if (!_forceShow) {
+                        // Normal blur: hide error so unfocused fields look clean
                         setState(() {
                           _errorText = "";
                           _isValid = null;
                         });
                       }
+                      // _forceShow == true && !hasFocus → keep error visible
                     },
                     child: TextField(
                       controller: widget.controller,
@@ -216,18 +238,20 @@ class _InputFieldState extends State<InputField> {
                                       : Icons.visibility,
                                   color: KColors.mainColor,
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscure = !_obscure;
-                                    debugPrint(_obscure.toString());
-                                  });
-                                },
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
                               )
                             : null,
                         hintText: widget.placeholderText,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(999),
-                          borderSide: BorderSide(color: KColors.thirdColor),
+                          borderSide: BorderSide(
+                            // Show red border on unfocused invalid fields
+                            // only when submit was attempted (_forceShow)
+                            color: _forceShow && _isValid == false
+                                ? Colors.redAccent
+                                : KColors.thirdColor,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(999),

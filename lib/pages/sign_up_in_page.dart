@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uconnecta/app_services.dart';
@@ -16,13 +17,25 @@ class SignUpInPage extends StatefulWidget {
 
 class _SignUpInPageState extends State<SignUpInPage> {
   bool isLoading = false;
-  late final TextEditingController controller1;
-  late final TextEditingController controller2;
-  late final TextEditingController controller3;
-  late final TextEditingController controller4;
-  late final TextEditingController controller5;
-  late final TextEditingController controller6;
+
+  // Registration controllers
+  late final TextEditingController controller1; // email
+  late final TextEditingController controller2; // phone
+  late final TextEditingController controller3; // password
+  late final TextEditingController controller4; // repeat password
+
+  // Login controllers
+  late final TextEditingController controller5; // email
+  late final TextEditingController controller6; // password
+
+  // "How to address" controller (modal)
   late final TextEditingController controller7;
+
+  // GlobalKeys for submit-time validation on register fields
+  final _emailKey = GlobalKey<InputFieldState>();
+  final _phoneKey = GlobalKey<InputFieldState>();
+  final _passwordKey = GlobalKey<InputFieldState>();
+  final _repeatPasswordKey = GlobalKey<InputFieldState>();
 
   @override
   void initState() {
@@ -45,9 +58,165 @@ class _SignUpInPageState extends State<SignUpInPage> {
     controller5.dispose();
     controller6.dispose();
     controller7.dispose();
-
     super.dispose();
   }
+
+  // ---------------------------------------------------------------------------
+  // Validation
+  // ---------------------------------------------------------------------------
+
+  /// Runs validateNow() on all register fields. Returns true only when every
+  /// field passes. Errors are shown inline — no snackbar needed.
+  bool _validateRegisterFields() {
+    final emailOk = _emailKey.currentState?.validateNow() ?? false;
+    final phoneOk = _phoneKey.currentState?.validateNow() ?? false;
+    final passwordOk = _passwordKey.currentState?.validateNow() ?? false;
+    final repeatOk = _repeatPasswordKey.currentState?.validateNow() ?? false;
+    return emailOk && phoneOk && passwordOk && repeatOk;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Error parsing
+  // ---------------------------------------------------------------------------
+
+  /// Converts a [DioException] (or any error) into a human-readable string.
+  /// Parses field-level 400 errors returned by the backend serializer.
+  String _parseError(Object e) {
+    if (e is! DioException) return "An unexpected error occurred. Please retry.";
+
+    final response = e.response;
+
+    // Network / timeout errors — no response at all
+    if (response == null) {
+      switch (e.type) {
+        case DioExceptionType.connectionError:
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.sendTimeout:
+          return "Connection error. Please check your internet and try again.";
+        default:
+          return "Network error. Please retry.";
+      }
+    }
+
+    final statusCode = response.statusCode;
+
+    // 401 — invalid credentials (login)
+    if (statusCode == 401) {
+      return "Invalid email or password.";
+    }
+
+    // 400 — validation errors from the serializer
+    // Response body can be:
+    //   {"email": ["User with this email already exists"], "phone": [...]}
+    //   {"detail": "..."}
+    //   {"non_field_errors": [...]}
+    if (statusCode == 400) {
+      final data = response.data;
+
+      if (data is Map) {
+        final messages = <String>[];
+
+        for (final entry in data.entries) {
+          final key = entry.key as String;
+          final val = entry.value;
+
+          // Friendly label mapping
+          final label = const {
+            'email': 'Email',
+            'phone': 'Phone',
+            'password': 'Password',
+            'repeat_password': 'Repeat password',
+            'detail': '',
+            'non_field_errors': '',
+          }[key] ?? _capitalize(key.replaceAll('_', ' '));
+
+          if (val is List) {
+            for (final msg in val) {
+              if (label.isEmpty) {
+                messages.add(msg.toString());
+              } else {
+                messages.add("$label: $msg");
+              }
+            }
+          } else if (val is String) {
+            messages.add(label.isEmpty ? val : "$label: $val");
+          }
+        }
+
+        if (messages.isNotEmpty) return messages.join("\n");
+      }
+
+      return "Invalid data. Please check your input and try again.";
+    }
+
+    // 5xx — server-side problem
+    if (statusCode != null && statusCode >= 500) {
+      return "Server error ($statusCode). Please try again later.";
+    }
+
+    return "Authentication error (${statusCode ?? '?'}). Please retry.";
+  }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  // ---------------------------------------------------------------------------
+  // Snackbars
+  // ---------------------------------------------------------------------------
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: KColors.badColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        content: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF2E7D32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // "How to address" modal
+  // ---------------------------------------------------------------------------
 
   Future<bool> _showHowToAddressModal() async {
     final result = await showDialog<bool>(
@@ -72,7 +241,7 @@ class _SignUpInPageState extends State<SignUpInPage> {
                   style: KTextStyles.fontBiggerStyle.copyWith(
                     color: Colors.white,
                   ),
-                  textAlign: .center,
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -138,35 +307,107 @@ class _SignUpInPageState extends State<SignUpInPage> {
     return result == true;
   }
 
+  // ---------------------------------------------------------------------------
+  // Submit handler
+  // ---------------------------------------------------------------------------
+
+  Future<void> _onSubmit(int tab) async {
+    if (isLoading) return;
+
+    // ── Registration ──────────────────────────────────────────────────────────
+    if (tab == 0) {
+      // 1. Validate all fields inline; errors appear under each field
+      if (!_validateRegisterFields()) return;
+
+      // 2. Ask how to address the user
+      final confirmed = await _showHowToAddressModal();
+      if (!confirmed) return;
+    }
+
+    setState(() => isLoading = true);
+
+    final auth = AppServices.auth;
+
+    try {
+      if (tab == 0) {
+        final dial = countryNotifier.value.dialCode;
+        final phone = "$dial${controller2.text.trim()}";
+
+        await auth.register(
+          email: controller1.text,
+          phone: phone,
+          password: controller3.text,
+          repeatPassword: controller4.text,
+          howToAddress: controller7.text.trim(),
+        );
+
+        await auth.login(
+          email: controller1.text,
+          password: controller3.text,
+        );
+      } else {
+        await auth.login(
+          email: controller5.text,
+          password: controller6.text,
+        );
+      }
+
+      if (!mounted) return;
+
+      _showSuccessSnackBar(
+        tab == 0 ? "Account created! Welcome 🎉" : "Welcome back!",
+      );
+
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (_) => false,
+      );
+    } catch (e) {
+      debugPrint("Auth error: $e");
+      _showErrorSnackBar(_parseError(e));
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     final registerWidget = Column(
       children: [
         InputField(
-          key: const ValueKey('register_email'),
+          key: _emailKey,
           controller: controller1,
           placeholderText: "Email",
           isRequired: true,
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         InputField(
-          key: const ValueKey('register_phone'),
+          key: _phoneKey,
           controller: controller2,
           placeholderText: "Phone",
           type: 1,
           isRequired: true,
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         InputField(
-          key: const ValueKey('register_password'),
+          key: _passwordKey,
           controller: controller3,
           placeholderText: "Password",
           type: 2,
           isRequired: true,
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         InputField(
-          key: const ValueKey('register_rep_password'),
+          key: _repeatPasswordKey,
           type: 3,
           controller: controller4,
           matchController: controller3,
@@ -183,7 +424,7 @@ class _SignUpInPageState extends State<SignUpInPage> {
           controller: controller5,
           placeholderText: "Email",
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         InputField(
           key: const ValueKey('login_password'),
           controller: controller6,
@@ -225,19 +466,20 @@ class _SignUpInPageState extends State<SignUpInPage> {
                   child: Text(
                     "Sign up for best user experience",
                     softWrap: true,
-                    textAlign: .center,
+                    textAlign: TextAlign.center,
                     style: KTextStyles.fontBiggerStyle,
                   ),
                 ),
-                SizedBox(height: 22.0),
+                const SizedBox(height: 22.0),
 
+                // ── Tab bar ──────────────────────────────────────────────────
                 ValueListenableBuilder<int>(
                   valueListenable: signUpInTabsNotifier,
                   builder: (context, signUpInTab, child) {
                     return Container(
                       decoration: BoxDecoration(
                         color: KColors.mainColor,
-                        borderRadius: BorderRadiusGeometry.only(
+                        borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                           topRight: Radius.circular(12),
                         ),
@@ -248,11 +490,11 @@ class _SignUpInPageState extends State<SignUpInPage> {
                             child: GestureDetector(
                               onTap: () => signUpInTabsNotifier.value = 0,
                               child: Container(
-                                padding: .symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 54,
                                   vertical: 12,
                                 ),
-                                alignment: .center,
+                                alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: signUpInTab == 0
                                       ? KColors.mainColor
@@ -279,11 +521,11 @@ class _SignUpInPageState extends State<SignUpInPage> {
                             child: GestureDetector(
                               onTap: () => signUpInTabsNotifier.value = 1,
                               child: Container(
-                                padding: .symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 54,
                                   vertical: 12,
                                 ),
-                                alignment: .center,
+                                alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: signUpInTab == 1
                                       ? KColors.mainColor
@@ -312,15 +554,16 @@ class _SignUpInPageState extends State<SignUpInPage> {
                   },
                 ),
 
+                // ── Form card ────────────────────────────────────────────────
                 Container(
-                  width: .infinity,
-                  padding: EdgeInsetsGeometry.symmetric(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 14.0,
                     vertical: 20.0,
                   ),
                   decoration: BoxDecoration(
                     color: KColors.mainColor,
-                    borderRadius: BorderRadius.only(
+                    borderRadius: const BorderRadius.only(
                       bottomRight: Radius.circular(12.0),
                       bottomLeft: Radius.circular(12.0),
                     ),
@@ -330,108 +573,43 @@ class _SignUpInPageState extends State<SignUpInPage> {
                     builder: (context, signUpInTab, child) {
                       return Center(
                         child: Column(
-                          mainAxisSize: .min,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             signUpInTab == 0 ? registerWidget : loginWidget,
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
                             Material(
                               color: KColors.thirdColorHover,
                               borderRadius: BorderRadius.circular(1000),
                               child: InkWell(
-                                onTap: () async {
-                                  if (isLoading) return;
-                                  if (signUpInTab == 0) {
-                                    final confirmed =
-                                        await _showHowToAddressModal();
-                                    if (!confirmed) return;
-                                  }
-                                  setState(() => isLoading = true);
-
-                                  final auth = AppServices.auth;
-
-                                  try {
-                                    if (signUpInTab == 0) {
-                                      final dial =
-                                          countryNotifier.value.dialCode;
-                                      final phoneRaw = controller2.text.trim();
-                                      final phone = "$dial$phoneRaw";
-
-                                      await auth.register(
-                                        email: controller1.text,
-                                        phone: phone,
-                                        password: controller3.text,
-                                        repeatPassword: controller4.text,
-                                        howToAddress: controller7.text.trim(),
-                                      );
-
-                                      await auth.login(
-                                        email: controller1.text,
-                                        password: controller3.text,
-                                      );
-                                    } else {
-                                      await auth.login(
-                                        email: controller5.text,
-                                        password: controller6.text,
-                                      );
-                                    }
-
-                                    if (!mounted) return;
-
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const AuthGate(),
-                                      ),
-                                      (_) => false,
-                                    );
-                                  } catch (e) {
-                                    debugPrint("Auth error: $e");
-                                    if (!mounted) return;
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Authentication error. Please, retry.",
-                                        ),
-                                      ),
-                                    );
-                                  } finally {
-                                    setState(() => isLoading = false);
-                                  }
-                                },
+                                onTap: () => _onSubmit(signUpInTab),
                                 borderRadius: BorderRadius.circular(1000),
                                 splashColor: KColors.thirdColorHover,
-                                child: ValueListenableBuilder(
-                                  valueListenable: signUpInTabsNotifier,
-                                  builder: (context, signUpInTab, child) {
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 34,
-                                        vertical: 8,
-                                      ),
-                                      child: isLoading
-                                          ? Transform.scale(
-                                              scale: 0.4,
-                                              child: CircularProgressIndicator(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 34,
+                                    vertical: 8,
+                                  ),
+                                  child: isLoading
+                                      ? Transform.scale(
+                                          scale: 0.4,
+                                          child: const CircularProgressIndicator(
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                      : Text(
+                                          signUpInTab == 0
+                                              ? "Continue"
+                                              : "Send",
+                                          style: KTextStyles.fontMediumStyle
+                                              .copyWith(
                                                 color: Colors.black,
+                                                fontWeight: FontWeight.bold,
                                               ),
-                                            )
-                                          : Text(
-                                              signUpInTab == 0
-                                                  ? "Continue"
-                                                  : "Send",
-                                              style: KTextStyles.fontMediumStyle
-                                                  .copyWith(
-                                                    color: Colors.black,
-                                                    fontWeight: .bold,
-                                                  ),
-                                            ),
-                                    );
-                                  },
+                                        ),
                                 ),
                               ),
                             ),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             if (signUpInTab == 1)
                               InkWell(
                                 onTap: () {
@@ -439,7 +617,7 @@ class _SignUpInPageState extends State<SignUpInPage> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => Container(
-                                        child: Text(
+                                        child: const Text(
                                           "This page is under construction.",
                                         ),
                                       ),
@@ -474,6 +652,8 @@ class _SignUpInPageState extends State<SignUpInPage> {
                     },
                   ),
                 ),
+
+                // ── Legal links ──────────────────────────────────────────────
                 const SizedBox(height: 24.0),
                 RichText(
                   text: TextSpan(
@@ -503,15 +683,17 @@ class _SignUpInPageState extends State<SignUpInPage> {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: .symmetric(vertical: 8.0, horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 16.0),
                   decoration: BoxDecoration(
                     color: KColors.secondaryColor,
-                    borderRadius: .circular(12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  constraints: BoxConstraints(maxWidth: 280),
+                  constraints: const BoxConstraints(maxWidth: 280),
                   child: Row(
                     children: [
-                      Icon(Icons.privacy_tip, size: 30, color: Colors.white),
+                      const Icon(Icons.privacy_tip,
+                          size: 30, color: Colors.white),
                       Text(
                         "Privacy policy",
                         style: KTextStyles.fontSmallStyle.copyWith(
@@ -525,13 +707,15 @@ class _SignUpInPageState extends State<SignUpInPage> {
                 Container(
                   decoration: BoxDecoration(
                     color: KColors.secondaryColor,
-                    borderRadius: .circular(12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  constraints: BoxConstraints(maxWidth: 280),
-                  padding: .symmetric(vertical: 8.0, horizontal: 16.0),
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 16.0),
                   child: Row(
                     children: [
-                      Icon(Icons.description, size: 30, color: Colors.white),
+                      const Icon(Icons.description,
+                          size: 30, color: Colors.white),
                       Text(
                         "Terms of use",
                         style: KTextStyles.fontSmallStyle.copyWith(
@@ -545,13 +729,14 @@ class _SignUpInPageState extends State<SignUpInPage> {
                 Container(
                   decoration: BoxDecoration(
                     color: KColors.secondaryColor,
-                    borderRadius: .circular(12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  constraints: BoxConstraints(maxWidth: 280),
-                  padding: .symmetric(vertical: 8.0, horizontal: 16.0),
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 16.0),
                   child: Row(
                     children: [
-                      Icon(Icons.info, size: 30, color: Colors.white),
+                      const Icon(Icons.info, size: 30, color: Colors.white),
                       Text(
                         "Instruction",
                         style: KTextStyles.fontSmallStyle.copyWith(
