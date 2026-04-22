@@ -9,7 +9,6 @@ import 'package:uconnecta/components/chat_card.dart';
 import 'package:uconnecta/components/search_field.dart';
 import 'package:uconnecta/components/sort_tab.dart';
 import 'package:uconnecta/data/constrains_&_utils.dart';
-import 'package:uconnecta/pages/call_page.dart';
 import 'package:uconnecta/pages/chat_page.dart';
 import 'package:uconnecta/pages/driver_profile_page.dart';
 import 'package:uconnecta/pages/camera_page.dart';
@@ -61,20 +60,12 @@ class _HomePageState extends State<HomePage> {
 
     AppServices.userWs.connect(
       onEvent: (event) {
+        // Delegate ALL call events to the central handler so the logic
+        // stays in one place (CallController) and reconnect behaviour
+        // (which uses userWsEventHandler) stays consistent.
+        AppServices.userWsEventHandler(event);
+
         final type = event["type"]?.toString();
-
-        if (type == "call.incoming") {
-          final callId = event["call_id"];
-          final chatId = event["chat_id"];
-          final fromUser = DriverProfile.fromJson(event["from_user"]);
-
-          NavigationService.navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  CallPage(callId: callId, chatId: chatId, fromUser: fromUser),
-            ),
-          );
-        }
 
         const reloadTypes = {
           "chat.created",
@@ -234,8 +225,8 @@ class _HomePageState extends State<HomePage> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    if (user.hasPassword)
+                    if (user.hasPassword) ...[
+                      const SizedBox(width: 12),
                       GestureDetector(
                         onTap: () {},
                         child: SvgPicture.asset(
@@ -244,6 +235,7 @@ class _HomePageState extends State<HomePage> {
                           height: 22,
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -351,9 +343,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                 )
               else if (filtered.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 30),
-                  child: Text("No chats yet"),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
+                  ),
+                  child: _EmptyChatsBanner(),
                 )
               else
                 ListView.builder(
@@ -549,16 +544,6 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                 ),
-              const SizedBox(height: 18),
-              FilledButton(
-                onPressed: () {
-                  final auth = AppServices.auth;
-                  auth.logout();
-                },
-                child: const Text("Logout"),
-              ),
-
-              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -683,6 +668,56 @@ class _AppDrawer extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyChatsBanner extends StatelessWidget {
+  const _EmptyChatsBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: KColors.mainGradient,
+        boxShadow: const [KColors.mainBoxShadow],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: KColors.thirdColor.withOpacity(0.25),
+            ),
+            child: Icon(Icons.message_outlined, size: 40, color: Colors.white,),
+            ),
+
+          const SizedBox(height: 22),
+          const Text(
+            "No chats yet",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            "Start chatting with drivers and your conversations will appear here.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: KColors.lightBackgroundColor.withOpacity(0.9),
+            ),
+          ),
+        ],
       ),
     );
   }

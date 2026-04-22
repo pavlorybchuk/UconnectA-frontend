@@ -3,6 +3,7 @@ import 'package:uconnecta/app_services.dart';
 import 'package:uconnecta/data/constrains_&_utils.dart';
 import 'package:uconnecta/pages/call_in_progress_page.dart';
 
+/// Shown on the RECEIVER's device for an incoming call.
 class CallPage extends StatelessWidget {
   final String callId;
   final String chatId;
@@ -16,25 +17,22 @@ class CallPage extends StatelessWidget {
   });
 
   Future<void> _accept(BuildContext context) async {
-    final controller = AppServices.callController;
-
-    await controller.accept(onRemoteStream: (_) {});
+    await AppServices.callController.accept(onRemoteStream: (_) {});
 
     if (!context.mounted) return;
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => CallInProgressPage(chatId: chatId, peer: fromUser),
+        builder: (_) =>
+            CallInProgressPage(chatId: chatId, peer: fromUser),
       ),
     );
   }
 
   Future<void> _reject(BuildContext context) async {
     await AppServices.callController.reject();
-    if (context.mounted) {
-      Navigator.pop(context);
-    }
+    if (context.mounted) Navigator.pop(context);
   }
 
   @override
@@ -46,9 +44,12 @@ class CallPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircleAvatar(
-              radius: 48,
+              radius: 56,
               backgroundImage: fromUser.photoUrl != null
                   ? NetworkImage(fromUser.photoUrl!)
+                  : null,
+              child: fromUser.photoUrl == null
+                  ? const Icon(Icons.person, size: 56, color: Colors.white54)
                   : null,
             ),
             const SizedBox(height: 16),
@@ -65,15 +66,29 @@ class CallPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                FloatingActionButton(
-                  backgroundColor: Colors.green,
-                  onPressed: () => _accept(context),
-                  child: const Icon(Icons.call),
+                Column(
+                  children: [
+                    FloatingActionButton(
+                      backgroundColor: Colors.green,
+                      onPressed: () => _accept(context),
+                      child: const Icon(Icons.call),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Accept',
+                        style: TextStyle(color: Colors.white70)),
+                  ],
                 ),
-                FloatingActionButton(
-                  backgroundColor: Colors.red,
-                  onPressed: () => _reject(context),
-                  child: const Icon(Icons.call_end),
+                Column(
+                  children: [
+                    FloatingActionButton(
+                      backgroundColor: Colors.red,
+                      onPressed: () => _reject(context),
+                      child: const Icon(Icons.call_end),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Reject',
+                        style: TextStyle(color: Colors.white70)),
+                  ],
                 ),
               ],
             ),

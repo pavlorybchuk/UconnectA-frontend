@@ -21,20 +21,24 @@ class AppServices {
   static final chatApi = ChatApi(apiClient);
   static final userWs = UserWsService();
   static final chatStore = ChatStore();
-  static late CallService callService;
+  static final callService = CallService();
   static final callController = CallController();
   static final callSound = CallSoundService();
   static final callVibration = CallVibrationService();
   static void userWsEventHandler(Map<String, dynamic> event) {
-    final type = event["type"];
-    final payload = event["payload"];
+    final type = event['type'];
 
-    if (type == "call.incoming") {
-      callController.onIncomingCall(payload);
-    }
-
-    if (type == "call.rejected" || type == "call.ended") {
-      callController.onCallEnded(payload);
+    switch (type) {
+      case 'call.incoming':
+        callController.onIncomingCall(event);
+        break;
+      case 'call.accepted':
+        callController.onCallAccepted(event);
+        break;
+      case 'call.rejected':
+      case 'call.ended':
+        callController.onCallEnded(event);
+        break;
     }
   }
 }

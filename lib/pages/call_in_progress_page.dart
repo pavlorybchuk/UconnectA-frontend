@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:uconnecta/app_services.dart';
+import 'package:uconnecta/data/call_controller.dart';
 import 'package:uconnecta/data/constrains_&_utils.dart';
 
 class CallInProgressPage extends StatefulWidget {
@@ -21,60 +22,86 @@ class _CallInProgressPageState extends State<CallInProgressPage> {
   final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
   bool _speakerOn = true;
   bool _muted = false;
+  // Guard against the double-pop: only pop once when the call ends.
+  bool _popping = false;
 
   @override
   void initState() {
     super.initState();
     _initRenderer();
+    AppServices.callController.stateListenable.addListener(_onStateChanged);
+    // Also reactively attach the remote stream if it arrives after init.
+    AppServices.callController.remoteStreamNotifier
+        .addListener(_onRemoteStream);
+  }
+
+  @override
+  void dispose() {
+    AppServices.callController.stateListenable.removeListener(_onStateChanged);
+    AppServices.callController.remoteStreamNotifier
+        .removeListener(_onRemoteStream);
+    _remoteRenderer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initRenderer() async {
+    await _remoteRenderer.initialize();
+    // Attach stream if it's already available (callee side where stream
+    // may arrive before the page is shown).
+    final stream = AppServices.callController.remoteStream;
+    if (stream != null && mounted) {
+      setState(() => _remoteRenderer.srcObject = stream);
+    }
+  }
+
+  void _onRemoteStream() {
+    final stream = AppServices.callController.remoteStream;
+    if (stream != null && mounted) {
+      setState(() => _remoteRenderer.srcObject = stream);
+    }
+  }
+
+  void _onStateChanged() {
+    if (AppServices.callController.state == CallState.idle &&
+        mounted &&
+        !_popping) {
+      _popping = true;
+      Navigator.of(context).pop();
+    }
   }
 
   String _format(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60);
     final s = d.inSeconds.remainder(60);
-
     if (h > 0) {
       return '${h.toString().padLeft(2, '0')}:'
           '${m.toString().padLeft(2, '0')}:'
           '${s.toString().padLeft(2, '0')}';
     }
-
     return '${m.toString().padLeft(2, '0')}:'
         '${s.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _initRenderer() async {
-    await _remoteRenderer.initialize();
-
-    final stream = AppServices.callController.remoteStream;
-    if (stream != null) {
-      _remoteRenderer.srcObject = stream;
-    }
-  }
-
-  @override
-  void dispose() {
-    _remoteRenderer.dispose();
-    super.dispose();
-  }
-
   Future<void> _hangup() async {
-    await AppServices.callController.reject();
-
-    if (!mounted) return;
-    Navigator.pop(context);
+    if (_popping) return;
+    _popping = true;
+    // end() calls reset() which sets state=idle, which fires _onStateChanged,
+    // which would pop — but _popping=true prevents that second pop.
+    await AppServices.callController.end();
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _toggleSpeaker() async {
     _speakerOn = !_speakerOn;
     await AppServices.callService.setSpeaker(_speakerOn);
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   void _toggleMute() {
     _muted = !_muted;
     AppServices.callService.setMuted(_muted);
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
@@ -87,7 +114,6 @@ class _CallInProgressPageState extends State<CallInProgressPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // ---------- VIDEO / AVATAR ----------
             Positioned.fill(
               child: hasVideo
                   ? RTCVideoView(
@@ -97,8 +123,6 @@ class _CallInProgressPageState extends State<CallInProgressPage> {
                     )
                   : _AudioOnlyView(peer: widget.peer),
             ),
-
-            // ---------- TOP ----------
             Positioned(
               top: 24,
               left: 0,
@@ -117,26 +141,18 @@ class _CallInProgressPageState extends State<CallInProgressPage> {
                   ValueListenableBuilder<Duration>(
                     valueListenable:
                         AppServices.callController.callDurationListenable,
-                    builder: (_, duration, __) {
-                      return Text(
-                        _format(duration),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      );
-                    },
+                    builder: (_, duration, __) => Text(
+                      _format(duration),
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 16),
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    "In call",
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                  const Text('In call',
+                      style: TextStyle(color: Colors.white70)),
                 ],
               ),
             ),
-
-            // ---------- CONTROLS ----------
             Positioned(
               bottom: 40,
               left: 0,
@@ -169,7 +185,6 @@ class _CallInProgressPageState extends State<CallInProgressPage> {
 
 class _AudioOnlyView extends StatelessWidget {
   final DriverProfile peer;
-
   const _AudioOnlyView({required this.peer});
 
   @override
@@ -182,6 +197,9 @@ class _AudioOnlyView extends StatelessWidget {
             radius: 56,
             backgroundImage: peer.photoUrl != null
                 ? NetworkImage(peer.photoUrl!)
+                : null,
+            child: peer.photoUrl == null
+                ? const Icon(Icons.person, size: 56, color: Colors.white54)
                 : null,
           ),
           const SizedBox(height: 16),
@@ -198,7 +216,6 @@ class _AudioOnlyView extends StatelessWidget {
 class _ControlButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-
   const _ControlButton({required this.icon, required this.onTap});
 
   @override

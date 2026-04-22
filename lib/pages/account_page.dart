@@ -524,6 +524,14 @@ class _AccountPageState extends State<AccountPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  FilledButton(
+                    onPressed: () {
+                      final auth = AppServices.auth;
+                      auth.logout();
+                    },
+                    child: const Text("Logout"),
+                  ),
                 ],
               ),
             ),

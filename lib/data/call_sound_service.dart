@@ -1,19 +1,21 @@
-import 'package:just_audio/just_audio.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
 class CallSoundService {
-  final AudioPlayer _player = AudioPlayer();
+  final _player = FlutterRingtonePlayer();
 
+  /// Plays the user's selected ringtone (Android) or the system ringtone
+  /// sound (iOS) in a loop until [stop] is called.
   Future<void> playIncoming() async {
-    await _player.setAsset('assets/sounds/incoming_call.mp3');
-    await _player.setLoopMode(LoopMode.one);
-    await _player.play();
+    await _player.play(
+      android: AndroidSounds.ringtone, // uses the phone's current ringtone
+      ios: IosSounds.electronic,       // closest built-in equivalent on iOS
+      looping: true,
+      volume: 1.0,
+      asAlarm: false,
+    );
   }
 
   Future<void> stop() async {
     await _player.stop();
-  }
-
-  Future<void> dispose() async {
-    await _player.dispose();
   }
 }

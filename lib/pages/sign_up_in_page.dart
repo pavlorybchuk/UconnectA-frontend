@@ -82,12 +82,11 @@ class _SignUpInPageState extends State<SignUpInPage> {
   /// Converts a [DioException] (or any error) into a human-readable string.
   /// Parses field-level 400 errors returned by the backend serializer.
   String _parseError(Object e) {
-    if (e is! DioException)
+    if (e is! DioException) {
       return "An unexpected error occurred. Please retry.";
+    }
 
     final response = e.response;
-
-    // Network / timeout errors — no response at all
     if (response == null) {
       switch (e.type) {
         case DioExceptionType.connectionError:
@@ -102,16 +101,10 @@ class _SignUpInPageState extends State<SignUpInPage> {
 
     final statusCode = response.statusCode;
 
-    // 401 — invalid credentials (login)
     if (statusCode == 401) {
       return "Invalid email or password.";
     }
 
-    // 400 — validation errors from the serializer
-    // Response body can be:
-    //   {"email": ["User with this email already exists"], "phone": [...]}
-    //   {"detail": "..."}
-    //   {"non_field_errors": [...]}
     if (statusCode == 400) {
       final data = response.data;
 

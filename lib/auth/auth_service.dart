@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:uconnecta/app_services.dart';
-import 'package:uconnecta/data/call_service.dart';
 import '../data/api.dart';
 import 'api_client.dart';
 import 'token_storage.dart';
@@ -23,14 +22,6 @@ class AuthService {
 
     final tokens = JwtTokens.fromJson(Map<String, dynamic>.from(r.data));
     await storage.saveTokens(access: tokens.access, refresh: tokens.refresh);
-
-    final access = await AppServices.tokenStorage.readAccess();
-
-    AppServices.callService = CallService(
-      baseUrl: Api.baseUrl,
-      wsUrl: Api.baseUrl.replaceFirst('https', 'wss'),
-      accessToken: access!,
-    );
 
     AppServices.userWs.connect(onEvent: AppServices.userWsEventHandler);
     return tokens;

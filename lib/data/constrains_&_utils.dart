@@ -243,6 +243,18 @@ class MessageItem {
   final String? image;
   final DateTime createdAt;
 
+  /// Non-null only for optimistic (locally-created) messages.
+  final String? localId;
+
+  /// True while the message is being uploaded to the server.
+  final bool isPending;
+
+  /// True if the send attempt failed.
+  final bool isFailed;
+
+  /// Path to local image file while the message is still pending.
+  final String? localImagePath;
+
   MessageItem({
     required this.id,
     required this.chat,
@@ -251,7 +263,64 @@ class MessageItem {
     required this.body,
     required this.image,
     required this.createdAt,
+    this.localId,
+    this.isPending = false,
+    this.isFailed = false,
+    this.localImagePath,
   });
+
+  /// Create an optimistic placeholder that appears instantly in the UI.
+  factory MessageItem.optimistic({
+    required String localId,
+    required String chatId,
+    required String sender,
+    required String senderUsername,
+    String? body,
+    String? localImagePath,
+    required DateTime createdAt,
+  }) {
+    return MessageItem(
+      id: -1,
+      chat: chatId,
+      sender: sender,
+      senderUsername: senderUsername,
+      body: body,
+      image: null,
+      createdAt: createdAt,
+      localId: localId,
+      isPending: true,
+      isFailed: false,
+      localImagePath: localImagePath,
+    );
+  }
+
+  MessageItem copyWith({
+    int? id,
+    String? chat,
+    String? sender,
+    String? senderUsername,
+    String? body,
+    String? image,
+    DateTime? createdAt,
+    String? localId,
+    bool? isPending,
+    bool? isFailed,
+    String? localImagePath,
+  }) {
+    return MessageItem(
+      id: id ?? this.id,
+      chat: chat ?? this.chat,
+      sender: sender ?? this.sender,
+      senderUsername: senderUsername ?? this.senderUsername,
+      body: body ?? this.body,
+      image: image ?? this.image,
+      createdAt: createdAt ?? this.createdAt,
+      localId: localId ?? this.localId,
+      isPending: isPending ?? this.isPending,
+      isFailed: isFailed ?? this.isFailed,
+      localImagePath: localImagePath ?? this.localImagePath,
+    );
+  }
 
   factory MessageItem.fromJson(Map<String, dynamic> json) {
     return MessageItem(
