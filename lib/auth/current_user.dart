@@ -21,6 +21,30 @@ class CurrentUser {
     required this.hasPassword,
   });
 
+  CurrentUser copyWith({
+    String? id,
+    String? email,
+    String? phone,
+    String? username,
+    String? howToAddress,
+    Map<String, dynamic>? profile,
+    List<String>? cars,
+    double? rating,
+    bool? hasPassword,
+  }) {
+    return CurrentUser(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      username: username ?? this.username,
+      howToAddress: howToAddress ?? this.howToAddress,
+      profile: profile ?? this.profile,
+      cars: cars ?? this.cars,
+      rating: rating ?? this.rating,
+      hasPassword: hasPassword ?? this.hasPassword,
+    );
+  }
+
   factory CurrentUser.fromJson(Map<String, dynamic> json) {
     return CurrentUser(
       id: (json["id"] ?? "").toString(),

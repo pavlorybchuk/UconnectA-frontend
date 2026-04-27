@@ -130,6 +130,131 @@ class _AccountPageState extends State<AccountPage> {
     setState(() {});
   }
 
+  Future<void> _addCar() async {
+    final controller = TextEditingController();
+    bool saving = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          Future<void> submit() async {
+            final plate = controller.text.trim().toUpperCase();
+            if (plate.isEmpty) return;
+            setModalState(() => saving = true);
+            try {
+              await AppServices.apiClient
+                  .post('/api/add/car/', data: {'car_number': plate});
+              final me = UserScope.of(context).value;
+              if (me != null && !me.cars.contains(plate)) {
+                UserScope.of(context).value =
+                    me.copyWith(cars: [...me.cars, plate]);
+              }
+              if (!mounted) return;
+              setState(() {});
+              Navigator.pop(ctx);
+            } catch (e) {
+              setModalState(() => saving = false);
+              if (!mounted) return;
+              final detail = (e.toString().contains('already exists'))
+                  ? 'This plate is already registered'
+                  : e.toString();
+              showErrorSnackBar(detail, mounted, ctx);
+            }
+          }
+
+          final bottom = MediaQuery.of(ctx).viewInsets.bottom;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, bottom + 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Add car',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: saving ? null : submit,
+                      icon: saving
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check_circle, color: Colors.green),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.characters,
+                  onSubmitted: (_) => submit(),
+                  decoration: InputDecoration(
+                    hintText: 'AA 1234 BB',
+                    labelText: 'Plate number',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _removeCar(String plate) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Remove car?'),
+        content: Text('Remove plate "$plate" from your profile?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child:
+                const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      await AppServices.apiClient.delete('/api/delete/car/$plate/');
+      final me = UserScope.of(context).value;
+      if (me != null) {
+        UserScope.of(context).value =
+            me.copyWith(cars: me.cars.where((c) => c != plate).toList());
+      }
+      if (!mounted) return;
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      showErrorSnackBar(e.toString(), mounted, context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final me = UserScope.of(context).value;
@@ -489,24 +614,14 @@ class _AccountPageState extends State<AccountPage> {
                   for (final car in me.cars) ...[
                     _CarChip(
                       plate: car,
-                      onRemove: () {
-                        // TODO: remove car API
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("TODO: remove $car")),
-                        );
-                      },
+                      onRemove: () => _removeCar(car),
                     ),
                     const SizedBox(height: 10),
                   ],
 
                   InkWell(
                     borderRadius: BorderRadius.circular(10),
-                    onTap: () async {
-                      // TODO: додати через діалог + API
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("TODO: Add car")),
-                      );
-                    },
+                    onTap: () => _addCar(),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(

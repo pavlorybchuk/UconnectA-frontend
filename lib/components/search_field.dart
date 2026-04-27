@@ -438,8 +438,7 @@ class _SearchInputState extends State<SearchInput>
                     color: KColors.thirdColorHover,
                   ),
             onTap: () {
-              if (_tooltipCLosed) return;
-              _showTooltip();
+              _hideTooltip();
             },
           ),
         ),
